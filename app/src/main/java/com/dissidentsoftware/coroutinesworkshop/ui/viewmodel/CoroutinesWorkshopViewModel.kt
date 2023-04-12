@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToLong
 
 private const val DELAY_ITERATION_MILLISECONDS = 1000L
+private const val BLOCKING_WORK_ITERATIONS = 100_000_000_000L
 
 class CoroutinesWorkshopViewModel: ViewModel() {
 
@@ -19,15 +20,16 @@ class CoroutinesWorkshopViewModel: ViewModel() {
     private val mainWorkDuration = 3000L
 
     private val coroutinesWorkTracker: MutableMap<Pair<String, CoroutineDispatcher>, Int> = mutableMapOf()
-    private val coroutinesConfigs: List<CoroutineConfig> = listOf(
-        CoroutineConfig("A", Dispatchers.Main, 5000, true),
-        CoroutineConfig("B", Dispatchers.Unconfined, 5000,false),
-        CoroutineConfig("C", Dispatchers.Unconfined, 5000,false),
-    ).onEach { coroutinesWorkTracker[it.id to it.dispatcher] = 0 }
-        .also { coroutinesWorkTracker[mainFlowId to mainDispatcher] = 0 }
-
+    private val coroutinesConfigs: List<CoroutineConfig> = mutableListOf<CoroutineConfig>().apply {
+        for (i in 1..1) {
+            add(CoroutineConfig(i.toString(), Dispatchers.Main, 5000, true))
+        }
+    }
 
     fun startPlayingWithCoroutines() {
+
+        coroutinesConfigs.forEach { coroutinesWorkTracker[it.id to it.dispatcher] = 0 }
+            .also { coroutinesWorkTracker[mainFlowId to mainDispatcher] = 0 }
 
         println("CHECKPOINT -> START ***************************************")
 
@@ -42,16 +44,17 @@ class CoroutinesWorkshopViewModel: ViewModel() {
                     withContext(dispatcher) {
                         if (shouldBlock) blockingWork(duration, coroutineId, dispatcher)
                         else suspendingWork(duration, coroutineId, dispatcher)
+                        println("CHECKPOINT -> '$coroutineId' FINISHED in $dispatcher (${Thread.currentThread().name} thread)")
                     }
-
-                    println("CHECKPOINT -> '$coroutineId' FINISHED in $dispatcher (${Thread.currentThread().name} thread)")
                 }
             }
         }
 
         println("MAIN FLOW -> RESUMED")
-        blockingWork(mainWorkDuration, mainFlowId, mainDispatcher)
-        println("CHECKPOINT -> '$mainFlowId' FINISHED in $mainDispatcher (${Thread.currentThread().name} thread)")
+        viewModelScope.launch(mainDispatcher) {
+            blockingWork(mainWorkDuration, mainFlowId, mainDispatcher)
+            println("CHECKPOINT -> '$mainFlowId' FINISHED in $mainDispatcher (${Thread.currentThread().name} thread)")
+        }
         println("CHECKPOINT -> FINISH ***************************************")
     }
 
@@ -80,6 +83,7 @@ class CoroutinesWorkshopViewModel: ViewModel() {
             println("'$coroutineId' -> Working (non-suspend) in $dispatcher (${Thread.currentThread().name} thread) for $i seconds")
 
             Thread.sleep(DELAY_ITERATION_MILLISECONDS)
+//            for (i: Long in 0..BLOCKING_WORK_ITERATIONS / timeMillis) { val j: Float = i.toFloat() / 666 }
 
             coroutinesWorkTracker[coroutineId to dispatcher] = (coroutinesWorkTracker[coroutineId to dispatcher] ?: 0) + 1
 
@@ -87,7 +91,7 @@ class CoroutinesWorkshopViewModel: ViewModel() {
                         || it.key.second != dispatcher
                         || it.value == Int.MAX_VALUE }
                     .takeIf { it.isNotEmpty() }
-                    ?.all { it.value == previousIterations[it.key] } == true
+                    ?.any { it.value == previousIterations[it.key] } == true
             ) {
                 if (hasPreviousBlockingWarning) { println("*'$coroutineId'* -> *** BLOCKING $dispatcher (${Thread.currentThread().name} thread) *** !!") }
                 else { hasPreviousBlockingWarning = true}
