@@ -10,7 +10,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dissidentsoftware.coroutinesworkshop.ui.theme.CoroutinesWorkshopTheme
+import com.dissidentsoftware.coroutinesworkshop.ui.viewmodel.CoroutinesWorkshopViewModel
+
+private const val WELCOME_MESSAGE = "Check Logcat for output"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,7 +26,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting("Android")
+                    MessageScreen(WELCOME_MESSAGE)
                 }
             }
         }
@@ -30,17 +34,23 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
+fun MessageScreen(
+    message: String,
+    modifier: Modifier = Modifier,
+    coroutinesWorkshopViewModel: CoroutinesWorkshopViewModel = viewModel()
+) {
     Text(
-        text = "Hello $name!",
+        text = message,
         modifier = modifier
     )
+
+    coroutinesWorkshopViewModel.startPlayingWithCoroutines()
 }
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun MessageScreenPreview() {
     CoroutinesWorkshopTheme {
-        Greeting("Android")
+        MessageScreen(WELCOME_MESSAGE)
     }
 }
