@@ -9,9 +9,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToLong
+import kotlin.math.sqrt
 
 private const val DELAY_ITERATION_MILLISECONDS = 1000L
-private const val BLOCKING_WORK_ITERATIONS = 100_000_000_000L
+private const val BLOCKING_WORK_ITERATIONS = 10000L
 
 class CoroutinesWorkshopViewModel: ViewModel() {
 
@@ -82,8 +83,8 @@ class CoroutinesWorkshopViewModel: ViewModel() {
         for (i in 0..getNumberOfIterations(timeMillis)) {
             println("'$coroutineId' -> Working (non-suspend) in $dispatcher (${Thread.currentThread().name} thread) for $i seconds")
 
-            Thread.sleep(DELAY_ITERATION_MILLISECONDS)
-//            for (i: Long in 0..BLOCKING_WORK_ITERATIONS / timeMillis) { val j: Float = i.toFloat() / 666 }
+//            Thread.sleep(DELAY_ITERATION_MILLISECONDS)
+            for (n: Long in 0..BLOCKING_WORK_ITERATIONS / timeMillis) { messAround(sqrt(n.toFloat()).toLong()) }
 
             coroutinesWorkTracker[coroutineId to dispatcher] = (coroutinesWorkTracker[coroutineId to dispatcher] ?: 0) + 1
 
@@ -101,6 +102,23 @@ class CoroutinesWorkshopViewModel: ViewModel() {
         }
         coroutinesWorkTracker[coroutineId to dispatcher] = Int.MAX_VALUE
     }
+
+    private fun messAround(number: Long) {
+
+        var n = number
+        while (n % 2 == 0L) {
+            n /= 2
+        }
+
+        val squareRoot = sqrt(n.toDouble()).toInt()
+
+        for (i in 3L..squareRoot step 2) {
+            while (n % i == 0L) {
+                n /= i
+            }
+        }
+    }
+
 
     private fun getNumberOfIterations(timeMillis: Long) = (timeMillis.toFloat() / DELAY_ITERATION_MILLISECONDS).roundToLong()
 }
